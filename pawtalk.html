@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>汪汪圈 - 狗狗社交APP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #FF6B35;
+      --primary-dark: #E55A28;
+      --secondary: #4ECDC4;
+      --secondary-dark: #3ab5a8;
+      --accent: #FFE66D;
+      --dark: #2C3E50;
+      --light: #F7F7F7;
+      --white: #FFFFFF;
+      --gray: #95A5A6;
+      --gray-light: #BDC3C7;
+      --shadow: rgba(255,107,53,0.15);
+      --urgent: #E74C3C;
+      --urgent-bg: #FDF2F2;
+      --safe-bottom: env(safe-area-inset-bottom, 25px);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Noto Sans SC', sans-serif; background: #1a1a2e; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    .phone { width: 375px; height: 812px; background: var(--light); border-radius: 40px; overflow: hidden; position: relative; box-shadow: 0 50px 100px rgba(0,0,0,0.5); }
+
+    /* SPLASH */
+    .splash { position: absolute; inset: 0; background: linear-gradient(135deg, var(--primary) 0%, #FF8F65 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; transition: opacity 0.6s ease, transform 0.6s ease; }
+    .splash.hidden { opacity: 0; transform: scale(1.1); pointer-events: none; }
+    .splash-logo { font-size: 80px; animation: bounce 1s ease infinite; }
+    .splash-text { font-family: 'ZCOOL KuaiLe', cursive; color: rgba(255,255,255,0.95); font-size: 24px; margin-top: 8px; letter-spacing: 6px; }
+    .paw-bg { position: absolute; font-size: 50px; opacity: 0.12; animation: float 4s ease-in-out infinite; }
+    .paw-1 { top: 12%; left: 8%; animation-delay: 0s; }
+    .paw-2 { top: 22%; right: 12%; animation-delay: 0.7s; }
+    .paw-3 { bottom: 22%; left: 6%; animation-delay: 1.4s; }
+    .paw-4 { bottom: 15%; right: 8%; animation-delay: 2.1s; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-18px) rotate(12deg); } }
+
+    /* APP SHELL */
+    .app { height: 100%; display: flex; flex-direction: column; opacity: 0; transition: opacity 0.4s ease 0.3s; position: relative; }
+    .app.visible { opacity: 1; }
+    .page { display: none; height: 100%; flex-direction: column; }
+    .page.active { display: flex; }
+
+    /* HEADER */
+    .header { padding: 50px 20px 14px; background: linear-gradient(180deg, var(--white) 0%, #F9F9F9 100%); flex-shrink: 0; }
+    .header-row { display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-family: 'ZCOOL KuaiLe', cursive; font-size: 28px; color: var(--primary); }
+    .header-right { display: flex; gap: 12px; }
+    .header-btn { width: 36px; height: 36px; background: #FFF0ED; border: none; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    /* SCROLL */
+    .scroll-area { flex: 1; overflow-y: auto; padding: 15px 15px 90px; }
+    .scroll-area::-webkit-scrollbar { display: none; }
+    .card { background: var(--white); border-radius: 20px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 20px var(--shadow); }
+
+    /* AI */
+    .ai-card { background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); border-radius: 20px; padding: 20px; margin-bottom: 15px; color: var(--white); cursor: pointer; transition: all 0.3s ease; }
+    .ai-card:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(102,126,234,0.4); }
+    .ai-card-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .ai-card-icon { width: 46px; height: 46px; background: rgba(255,255,255,0.18); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .ai-card-title { font-weight: 700; font-size: 17px; }
+    .ai-card-desc { font-size: 13px; opacity: 0.88; line-height: 1.5; }
+
+    /* 寻狗入口卡 */
+    .lost-entry {
+      background: linear-gradient(135deg, var(--urgent) 0%, #C0392B 100%);
+      border-radius: 20px; padding: 16px; margin-bottom: 15px;
+      color: #fff; cursor: pointer;
+      position: relative; overflow: hidden;
+    }
+    .lost-entry:hover { transform: scale(1.02); }
+    .lost-entry::after { content: '🚨'; position: absolute; top: -15px; right: -5px; font-size: 90px; opacity: 0.12; }
+    .lost-entry-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .lost-entry-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .lost-entry-count { background: rgba(255,255,255,0.2); font-size: 11px; padding: 3px 10px; border-radius: 20px; }
+    .lost-entry-desc { font-size: 12px; opacity: 0.88; margin-bottom: 12px; line-height: 1.5; }
+    .lost-entry-list { display: flex; flex-direction: column; gap: 8px; }
+    .lost-entry-item { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 8px 10px; }
+    .lost-entry-item-img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+    .lost-entry-item-info { flex: 1; }
+    .lost-entry-item-name { font-size: 13px; font-weight: 700; }
+    .lost-entry-item-loc { font-size: 11px; opacity: 0.8; }
+    .lost-entry-more { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; opacity: 0.85; margin-top: 8px; }
+
+    /* POST CARD */
+    .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); }
+    .username { font-weight: 700; font-size: 14px; color: var(--dark); }
+    .post-meta { font-size: 11px; color: var(--gray); display: flex; align-items: center; gap: 6px; }
+    .breed-tag { background: linear-gradient(135deg, var(--secondary), #45B7AA); color: #fff; font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+    .post-img { width: 100%; height: 200px; object-fit: cover; border-radius: 15px; margin-bottom: 12px; }
+    .post-content { font-size: 14px; color: var(--dark); line-height: 1.65; margin-bottom: 12px; }
+    .post-stats { font-size: 12px; color: var(--gray); margin-bottom: 10px; }
+    .post-actions { display: flex; gap: 8px; }
+    .action-btn { flex: 1; padding: 9px; border: none; border-radius: 12px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.2s ease; }
+    .action-btn:active { transform: scale(0.95); }
+    .action-btn.like { background: #FFF0ED; color: var(--primary); }
+    .action-btn.comment { background: #E8F6F5; color: var(--secondary); }
+    .action-btn.share { background: #FFF9E6; color: #E6A600; }
+    .action-btn.liked { background: var(--primary); color: #fff; }
+
+    /* KNOWLEDGE */
+    .tab-bar { display: flex; gap: 6px; padding: 10px 0 15px; overflow-x: auto; flex-shrink: 0; }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-item { flex-shrink: 0; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 2px solid #EEE; color: var(--gray); transition: all 0.2s ease; white-space: nowrap; }
+    .tab-item.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .know-card { background: var(--white); border-radius: 20px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 20px var(--shadow); cursor: pointer; }
+    .know-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .know-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .know-user { font-weight: 700; font-size: 13px; }
+    .know-badge { background: #FFF3E0; color: #E65100; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .know-title { font-size: 15px; font-weight: 700; color: var(--dark); line-height: 1.5; margin-bottom: 8px; }
+    .know-preview { font-size: 13px; color: var(--gray); line-height: 1.6; margin-bottom: 12px; }
+    .know-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .know-tag { background: #F5F5F5; color: var(--dark); font-size: 11px; padding: 5px 10px; border-radius: 12px; }
+    .know-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #F0F0F0; font-size: 12px; color: var(--gray); }
+    .breed-intro { background: linear-gradient(135deg, #FFF9C4 0%, #FFFDE7 100%); border-radius: 16px; padding: 14px; margin-bottom: 12px; border-left: 4px solid #FFD600; }
+    .breed-intro-title { font-weight: 700; font-size: 14px; color: var(--dark); margin-bottom: 8px; }
+    .breed-traits { display: flex; gap: 8px; flex-wrap: wrap; }
+    .trait-chip { background: var(--white); color: var(--dark); font-size: 11px; padding: 5px 12px; border-radius: 20px; }
+
+    /* ===== 臭美秀：抖音式全屏 ===== */
+    .showoff-container { position: relative; width: 100%; height: 100%; background: #000; overflow: hidden; }
+    .showoff-tabs { position: absolute; top: 0; left: 0; right: 0; display: flex; gap: 0; z-index: 30; padding: 50px 20px 12px; background: linear-gradient(180deg, rgba(0,0,0,0.65) 0%, transparent 100%); }
+    .showoff-tab-btn { flex: 1; padding: 8px; background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 20px; transition: all 0.2s; }
+    .showoff-tab-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
+
+    .showoff-list {
+      width: 100%; height: 100%;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .showoff-list::-webkit-scrollbar { display: none; }
+
+    .showoff-item {
+      width: 100%; height: 100%;
+      scroll-snap-align: start; scroll-snap-stop: always;
+      position: relative; background: #111;
+    }
+    .showoff-bg {
+      width: 100%; height: 100%;
+      background-size: cover; background-position: center;
+      position: absolute; inset: 0;
+    }
+    /* 渐变遮罩 */
+    .showoff-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.72) 40%);
+      padding: 0 16px 90px;
+    }
+    .showoff-user { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .showoff-avatar { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; }
+    .showoff-username { font-weight: 700; color: #fff; font-size: 15px; }
+    .showoff-follow-btn { background: var(--primary); color: #fff; border: none; padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .showoff-text { font-size: 14px; color: rgba(255,255,255,0.95); line-height: 1.6; margin-bottom: 12px; }
+    .showoff-music { font-size: 12px; color: rgba(255,255,255,0.65); display: flex; align-items: center; gap: 6px; }
+    /* 右侧按钮 */
+    .showoff-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; align-items: center; gap: 18px; z-index: 20; }
+    .showoff-action { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+    .showoff-action-icon { font-size: 30px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
+    .showoff-action-count { font-size: 11px; color: #fff; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+    .showoff-action-btn { width: 44px; height: 44px; background: rgba(255,255,255,0.12); border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; margin-bottom: 2px; transition: transform 0.2s ease; }
+    .showoff-action-btn:active { transform: scale(1.3); }
+    /* 底部进度条 */
+    .showoff-progress { position: absolute; bottom: 82px; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.15); z-index: 20; }
+    .showoff-progress-bar { height: 100%; background: #fff; border-radius: 3px; transition: width 0.1s linear; }
+    /* 视频指示点 */
+    .showoff-dots { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 20; pointer-events: none; }
+    .showoff-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: all 0.3s; }
+    .showoff-dot.active { background: #fff; width: 6px; height: 18px; border-radius: 3px; }
+    /* 发布按钮 */
+    .showoff-publish { position: absolute; bottom: calc(var(--safe-bottom) + 82px); right: 18px; width: 46px; height: 46px; background: rgba(255,255,255,0.15); border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; z-index: 20; }
+
+    /* MSG */
+    .msg-notif { background: var(--urgent-bg); border-radius: 16px; padding: 14px; margin-bottom: 12px; border-left: 4px solid var(--urgent); }
+    .msg-found { background: #E8F8F5; border-radius: 16px; padding: 14px; margin-bottom: 12px; border-left: 4px solid var(--secondary); }
+    .msg-notif-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .msg-notif-icon { font-size: 20px; }
+    .msg-notif-title { flex: 1; font-weight: 700; font-size: 14px; color: var(--urgent); }
+    .msg-found .msg-notif-title { color: var(--secondary-dark); }
+    .msg-notif-time { font-size: 11px; color: var(--gray); }
+    .msg-notif-body { font-size: 13px; color: var(--dark); line-height: 1.6; margin-bottom: 10px; }
+    .msg-notif-btn { width: 100%; padding: 8px; background: var(--urgent); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .msg-found .msg-notif-btn { background: var(--secondary-dark); }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+    /* NAV */
+    .nav-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); padding: 10px 10px calc(var(--safe-bottom) + 8px); display: flex; justify-content: space-around; border-top: 1px solid #F0F0F0; z-index: 10; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; transition: all 0.2s ease; padding: 4px 8px; }
+    .nav-icon { font-size: 24px; transition: transform 0.2s ease; }
+    .nav-label { font-size: 10px; color: var(--gray); font-weight: 500; }
+    .nav-item.active .nav-label { color: var(--primary); }
+    .nav-item.active .nav-icon { transform: scale(1.15); }
+
+    /* ===== 集市 ===== */
+    .market-banner { background: linear-gradient(135deg, #FF6B35 0%, #FF8F65 50%, #FFE66D 100%); border-radius: 20px; padding: 20px; margin-bottom: 14px; position: relative; overflow: hidden; }
+    .market-banner::before { content: '🐾'; position: absolute; right: 15px; top: 10px; font-size: 60px; opacity: 0.15; }
+    .market-banner-title { font-family: 'ZCOOL KuaiLe', cursive; font-size: 20px; color: #fff; margin-bottom: 6px; }
+    .market-banner-sub { font-size: 13px; color: rgba(255,255,255,0.88); margin-bottom: 12px; }
+    .market-banner-btn { display: inline-block; background: rgba(255,255,255,0.22); border: 1.5px solid rgba(255,255,255,0.45); color: #fff; padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .market-cats { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; }
+    .market-cat { flex-shrink: 0; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 2px solid #EEE; color: var(--gray); background: var(--white); transition: all 0.2s; white-space: nowrap; }
+    .market-cat.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .product-card { background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.07); cursor: pointer; transition: transform 0.2s; }
+    .product-card:active { transform: scale(0.96); }
+    .product-img-wrap { position: relative; }
+    .product-img { width: 100%; height: 150px; object-fit: cover; }
+    .product-tag { position: absolute; top: 8px; left: 8px; background: var(--urgent); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 8px; }
+    .product-tag.orange { background: var(--primary); }
+    .product-tag.green { background: var(--secondary); }
+    .product-body { padding: 10px 12px 12px; }
+    .product-name { font-size: 13px; font-weight: 700; color: var(--dark); line-height: 1.4; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .product-breed { font-size: 11px; color: var(--secondary-dark); background: #E8F8F5; padding: 2px 8px; border-radius: 8px; display: inline-block; margin-bottom: 8px; }
+    .product-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 6px; }
+    .product-price-now { font-size: 18px; font-weight: 700; color: var(--primary); }
+    .product-price-ori { font-size: 11px; color: var(--gray); text-decoration: line-through; }
+    .product-sales { font-size: 11px; color: var(--gray); }
+    .product-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .product-btn-buy { flex: 1; background: var(--primary); color: #fff; border: none; padding: 7px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .product-btn-cart { width: 34px; height: 34px; background: #FFF0ED; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .market-section-title { font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .market-section-more { font-size: 12px; color: var(--gray); font-weight: 400; }
+    .hot-rank { background: var(--white); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+    .hot-rank-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #F5F5F5; cursor: pointer; }
+    .hot-rank-item:last-child { border-bottom: none; }
+    .hot-rank-num { font-size: 16px; font-weight: 700; color: var(--gray); width: 20px; }
+    .hot-rank-num.top { color: var(--primary); font-size: 18px; }
+    .hot-rank-img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
+    .hot-rank-info { flex: 1; }
+    .hot-rank-name { font-size: 13px; font-weight: 700; color: var(--dark); }
+    .hot-rank-sales { font-size: 11px; color: var(--gray); }
+    .hot-rank-price { font-size: 14px; font-weight: 700; color: var(--primary); }
+
+    /* ===== 商品详情弹窗 ===== */
+    .product-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.88); z-index: 55; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .product-modal.visible { opacity: 1; pointer-events: auto; }
+    .product-modal-inner { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); border-radius: 24px 24px 0 0; max-height: 85%; overflow-y: auto; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); }
+    .product-modal.visible .product-modal-inner { transform: translateY(0); }
+    .product-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 50px 20px 14px; background: var(--white); position: sticky; top: 0; z-index: 1; }
+    .product-modal-title { font-size: 17px; font-weight: 700; color: var(--dark); }
+    .product-modal-close { width: 36px; height: 36px; background: #F5F5F5; border: none; border-radius: 50%; font-size: 16px; cursor: pointer; }
+    .product-modal-img { width: 100%; height: 220px; object-fit: cover; }
+    .product-modal-body { padding: 16px; }
+    .product-modal-price { font-size: 26px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .product-modal-ori { font-size: 13px; color: var(--gray); text-decoration: line-through; margin-bottom: 10px; }
+    .product-modal-name { font-size: 16px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+    .product-modal-desc { font-size: 13px; color: var(--gray); line-height: 1.7; margin-bottom: 14px; }
+    .product-modal-specs { margin-bottom: 16px; }
+    .product-modal-specs-title { font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+    .product-modal-spec { display: flex; justify-content: space-between; font-size: 12px; padding: 6px 0; border-bottom: 1px solid #F5F5F5; }
+    .product-modal-spec-label { color: var(--gray); }
+    .product-modal-spec-val { color: var(--dark); font-weight: 600; }
+    .product-modal-footer { display: flex; gap: 10px; padding: 14px 16px; background: var(--white); border-top: 1px solid #F0F0F0; }
+    .product-modal-cart { width: 50px; height: 46px; background: #FFF0ED; border: none; border-radius: 14px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .product-modal-buy { flex: 1; background: var(--primary); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+    /* ===== 日记样式 ===== */
+    .diary-date { font-size: 13px; color: var(--gray); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+    .diary-entry { background: var(--white); border-radius: 20px; padding: 16px; margin-bottom: 14px; box-shadow: 0 4px 20px var(--shadow); }
+    .diary-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .diary-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2.5px solid var(--accent); }
+    .diary-user { font-weight: 700; font-size: 14px; color: var(--dark); }
+    .diary-time { font-size: 11px; color: var(--gray); }
+    .diary-mood { display: inline-flex; align-items: center; gap: 4px; background: #FFF9E6; color: #E6A600; font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+    .diary-text { font-size: 14px; color: var(--dark); line-height: 1.75; margin-bottom: 12px; }
+    .diary-img { width: 100%; border-radius: 14px; margin-bottom: 12px; }
+    .diary-img-row { display: flex; gap: 6px; margin-bottom: 12px; }
+    .diary-img-row img { flex: 1; border-radius: 12px; object-fit: cover; height: 120px; }
+    .diary-weather { font-size: 12px; color: var(--gray); margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+    .diary-actions { display: flex; gap: 8px; }
+    .diary-btn { flex: 1; padding: 8px; border: none; border-radius: 12px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.2s; }
+    .diary-btn:active { transform: scale(0.95); }
+    .diary-btn.like { background: #FFF0ED; color: var(--primary); }
+    .diary-btn.comment { background: #E8F6F5; color: var(--secondary); }
+    .diary-btn.share { background: #FFF9E6; color: #E6A600; }
+    .diary-btn.liked { background: var(--primary); color: #fff; }
+    .diary-write { position: fixed; bottom: 90px; right: 24px; width: 52px; height: 52px; background: var(--primary); color: #fff; border: none; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: 0 4px 20px rgba(255,107,53,0.4); z-index: 5; transition: transform 0.2s; }
+    .diary-write:active { transform: scale(0.9); }
+
+    /* ===== 臭美秀(穿搭)样式 ===== */
+    .dressup-tabs { display: flex; gap: 6px; padding: 10px 0 14px; overflow-x: auto; }
+    .dressup-tabs::-webkit-scrollbar { display: none; }
+    .dressup-tab { flex-shrink: 0; padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 2px solid #EEE; color: var(--gray); background: var(--white); transition: all 0.2s; white-space: nowrap; }
+    .dressup-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .dressup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding-bottom: 20px; }
+    .dressup-thumb { aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; width: 100%; transition: transform 0.15s; }
+    .dressup-thumb:active { transform: scale(0.95); }
+    /* 穿搭详情弹窗 */
+    .dressup-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; }
+    .dressup-modal.visible { display: flex; }
+    .dressup-modal-img { width: 100%; max-height: 55vh; object-fit: cover; border-radius: 0 0 20px 20px; }
+    .dressup-modal-top { position: absolute; top: 0; left: 0; right: 0; padding: 16px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(rgba(0,0,0,0.5), transparent); }
+    .dressup-modal-close { background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 20px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .dressup-modal-share { background: rgba(255,255,255,0.2); border: none; color: #fff; font-size: 16px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .dressup-modal-body { background: var(--white); width: 100%; border-radius: 20px 20px 0 0; padding: 20px 20px 40px; margin-top: -16px; max-height: 45vh; overflow-y: auto; }
+    .dressup-modal-user { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .dressup-modal-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); }
+    .dressup-modal-username { font-weight: 700; font-size: 14px; color: var(--dark); }
+    .dressup-modal-breed { font-size: 12px; color: var(--secondary); margin-top: 2px; }
+    .dressup-modal-section { margin-bottom: 14px; }
+    .dressup-modal-section-title { font-size: 12px; color: var(--gray); font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .dressup-modal-section-text { font-size: 14px; color: var(--dark); line-height: 1.75; }
+    .dressup-modal-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dressup-modal-tag { background: #FFF0ED; color: var(--primary); font-size: 12px; padding: 5px 12px; border-radius: 14px; font-weight: 500; }
+    .dressup-modal-tag.buy { background: var(--primary); color: #fff; cursor: pointer; }
+    .dressup-modal-actions { display: flex; gap: 10px; margin-bottom: 14px; }
+    .dressup-modal-btn { flex: 1; padding: 12px; border: none; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .dressup-modal-btn.like { background: #FFF0ED; color: var(--primary); }
+    .dressup-modal-btn.collect { background: #FFF9E6; color: #E6A600; }
+    .dressup-modal-btn.liked { background: var(--primary); color: #fff; }
+    .dressup-modal-like-count { font-size: 12px; color: var(--gray); margin-bottom: 14px; }
+    .dressup-modal-tip { background: #F0FFF4; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #2D6A4F; line-height: 1.65; }
+
+    /* ===== 消息通知弹窗 ===== */
+    .notify-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.88); z-index: 55; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .notify-modal.visible { opacity: 1; pointer-events: auto; }
+    .notify-modal-inner { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); border-radius: 24px 24px 0 0; max-height: 80%; overflow-y: auto; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); }
+    .notify-modal.visible .notify-modal-inner { transform: translateY(0); }
+    .notify-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 50px 20px 14px; background: var(--white); position: sticky; top: 0; z-index: 1; }
+    .notify-modal-title { font-size: 17px; font-weight: 700; color: var(--dark); }
+    .notify-modal-close { width: 36px; height: 36px; background: #F5F5F5; border: none; border-radius: 50%; font-size: 16px; cursor: pointer; }
+    .notify-modal-body { padding: 0 16px 30px; }
+
+    /* AI MODAL */
+    .modal { position: absolute; inset: 0; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .modal.visible { opacity: 1; pointer-events: auto; }
+    .camera-view { width: 280px; height: 380px; background: linear-gradient(180deg, #1a1a2e, #16213e); border-radius: 28px; position: relative; overflow: hidden; }
+    .camera-scan-line { position: absolute; left: 18px; right: 18px; height: 2px; background: linear-gradient(90deg, transparent, #4ECDC4, transparent); animation: scan 2s ease-in-out infinite; top: 25%; }
+    @keyframes scan { 0%, 100% { top: 25%; opacity: 0.8; } 50% { top: 75%; opacity: 0.5; } }
+    .camera-frame { position: absolute; inset: 18px; border: 3px dashed rgba(255,255,255,0.25); border-radius: 18px; display: flex; align-items: center; justify-content: center; }
+    .camera-icon { font-size: 64px; opacity: 0.4; }
+    .camera-hint { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.65); font-size: 13px; text-align: center; }
+    .close-modal { position: absolute; top: 40px; right: 30px; width: 40px; height: 40px; background: rgba(255,255,255,0.1); border: none; border-radius: 50%; color: #fff; font-size: 18px; cursor: pointer; }
+    .result-card { position: absolute; bottom: 0; left: 0; right: 0; background: var(--white); border-radius: 28px 28px 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); }
+    .result-card.visible { transform: translateY(0); }
+    .result-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .result-img { width: 66px; height: 66px; border-radius: 14px; object-fit: cover; border: 3px solid var(--secondary); }
+    .result-name { font-size: 18px; font-weight: 700; color: var(--dark); }
+    .result-conf { font-size: 12px; color: var(--secondary); margin-top: 2px; }
+    .result-tags { display: flex; gap: 7px; flex-wrap: wrap; }
+    .result-tag { background: #F0F0F0; color: var(--dark); font-size: 11px; padding: 5px 11px; border-radius: 20px; }
+
+    /* 寻狗 MODAL */
+    .lost-modal { position: absolute; inset: 0; background: rgba(0,0,0,0.88); z-index: 55; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .lost-modal.visible { opacity: 1; pointer-events: auto; }
+    .lost-modal-inner { height: 100%; background: var(--light); transform: translateY(100%); transition: transform 0.4s ease; border-radius: 24px 24px 0 0; overflow-y: auto; }
+    .lost-modal.visible .lost-modal-inner { transform: translateY(0); }
+    .lost-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 50px 20px 14px; background: var(--white); position: sticky; top: 0; z-index: 1; }
+    .lost-modal-title { font-family: 'ZCOOL KuaiLe', cursive; font-size: 20px; color: var(--urgent); }
+    .lost-modal-close { width: 36px; height: 36px; background: #F5F5F5; border: none; border-radius: 50%; font-size: 16px; cursor: pointer; }
+    .lost-modal-body { padding: 16px; }
+    .lost-banner { background: linear-gradient(135deg, var(--urgent) 0%, #C0392B 100%); border-radius: 16px; padding: 16px; margin-bottom: 14px; color: #fff; position: relative; overflow: hidden; }
+    .lost-banner::after { content: '🐾'; position: absolute; bottom: -10px; right: -5px; font-size: 70px; opacity: 0.1; }
+    .lost-banner-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .lost-banner-desc { font-size: 12px; opacity: 0.88; line-height: 1.5; margin-bottom: 12px; }
+    .lost-banner-btn { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.4); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .lost-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .lost-tab { flex: 1; padding: 9px; border: 2px solid #EEE; background: var(--white); border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; color: var(--gray); }
+    .lost-tab.active { background: var(--urgent); border-color: var(--urgent); color: #fff; }
+    .lost-tab.found.active { background: var(--secondary-dark); border-color: var(--secondary-dark); }
+    .lost-tab.found { color: var(--secondary-dark); border-color: var(--secondary-dark); }
+    /* 寻狗卡片 */
+    .lost-card { background: var(--white); border-radius: 18px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.07); cursor: pointer; border-left: 4px solid var(--urgent); }
+    .lost-card:active { transform: scale(0.98); }
+    .lost-card.found-card { border-left-color: var(--secondary); }
+    .lost-card-top { display: flex; }
+    .lost-card-img { width: 100px; height: 100px; object-fit: cover; flex-shrink: 0; }
+    .lost-card-body { flex: 1; padding: 10px 12px; }
+    .lost-card-type { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-bottom: 4px; }
+    .type-lost { background: var(--urgent-bg); color: var(--urgent); }
+    .type-found { background: #E8F8F5; color: var(--secondary-dark); }
+    .lost-card-name { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 3px; }
+    .lost-card-breed { font-size: 12px; color: var(--gray); margin-bottom: 3px; }
+    .lost-card-loc { font-size: 12px; color: var(--dark); display: flex; align-items: center; gap: 4px; }
+    .lost-card-time { font-size: 11px; color: var(--gray); margin-top: 2px; }
+    .lost-card-footer { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #FAFAFA; border-top: 1px solid #F0F0F0; }
+    .lost-reward-tag { background: #FFF3E0; color: #E65100; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 12px; }
+    .lost-help-btn { background: var(--urgent); color: #fff; border: none; padding: 5px 14px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .found-card .lost-help-btn { background: var(--secondary-dark); }
+    .lost-stats { font-size: 11px; color: var(--gray); }
+
+    /* PROFILE */
+    .profile-banner { height: 140px; background: linear-gradient(135deg, var(--primary), #FF8F65); }
+    .profile-info { padding: 0 20px 20px; background: var(--white); }
+    .profile-avatar-row { display: flex; align-items: flex-end; gap: 14px; margin-top: -35px; margin-bottom: 12px; }
+    .profile-avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 4px solid var(--white); box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .profile-name { font-size: 18px; font-weight: 700; color: var(--dark); }
+    .profile-id { font-size: 12px; color: var(--gray); }
+    .profile-stats-row { display: flex; gap: 0; border-top: 1px solid #F0F0F0; padding-top: 14px; margin-bottom: 14px; }
+    .profile-stat { flex: 1; text-align: center; border-right: 1px solid #F0F0F0; }
+    .profile-stat:last-child { border-right: none; }
+    .profile-stat-num { font-size: 17px; font-weight: 700; color: var(--dark); }
+    .profile-stat-label { font-size: 11px; color: var(--gray); }
+    .profile-bio { font-size: 13px; color: var(--dark); line-height: 1.6; margin-bottom: 14px; }
+    .profile-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .profile-tag { background: #FFF0ED; color: var(--primary); font-size: 11px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+    .profile-btn { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 14px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 14px; }
+
+    /* TOAST */
+    #toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.8); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 14px; z-index: 200; opacity: 0; pointer-events: none; transition: all 0.3s ease; white-space: nowrap; }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+    .anim-1 { animation: slideUp 0.45s ease 0.1s backwards; }
+    .anim-2 { animation: slideUp 0.45s ease 0.2s backwards; }
+    .anim-3 { animation: slideUp 0.45s ease 0.3s backwards; }
+    .anim-4 { animation: slideUp 0.45s ease 0.4s backwards; }
+  </style>
+</head>
+<body>
+  <div class="phone">
+
+    <!-- SPLASH -->
+    <div class="splash" id="splash">
+      <div class="paw-bg paw-1">🐾</div>
+      <div class="paw-bg paw-2">🐾</div>
+      <div class="paw-bg paw-3">🐾</div>
+      <div class="paw-bg paw-4">🐾</div>
+      <div class="splash-logo">🐕</div>
+      <div class="splash-text">汪汪圈</div>
+    </div>
+
+    <div class="app" id="app">
+
+      <!-- ===== PAGE: 汪汪日记 ===== -->
+      <div class="page active" id="page-home">
+        <div class="header">
+          <div class="header-row">
+            <div class="header-title">汪汪日记</div>
+            <div class="header-right">
+              <button class="header-btn" onclick="openLostModal()">🚨</button>
+              <button class="header-btn" onclick="openNotifyModal()">🔔</button>
+            </div>
+          </div>
+        </div>
+        <div class="scroll-area">
+          <!-- AI识别入口 -->
+          <div class="ai-card anim-1" onclick="openAI()">
+            <div class="ai-card-row">
+              <div class="ai-card-icon">🤖</div>
+              <div class="ai-card-title">AI品种识别</div>
+            </div>
+            <div class="ai-card-desc">拍照识狗 · 了解性格 · 查找同伴 · 匹配有缘汪</div>
+          </div>
+          <!-- 寻狗快捷入口 -->
+          <div class="lost-entry anim-2" onclick="openLostModal()">
+            <div class="lost-entry-top">
+              <div class="lost-entry-title">🚨 寻狗启示</div>
+              <div class="lost-entry-count">12只待找</div>
+            </div>
+            <div class="lost-entry-desc">全城爱心接力，帮走丢的汪星人回家</div>
+            <div class="lost-entry-list">
+              <div class="lost-entry-item">
+                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=80&h=80&fit=crop" class="lost-entry-item-img" alt="">
+                <div class="lost-entry-item-info">
+                  <div class="lost-entry-item-name">棉花糖 · 比熊</div>
+                  <div class="lost-entry-item-loc">📍 武侯区玉林路</div>
+                </div>
+                <div class="lost-entry-item-badge" style="background:rgba(255,255,255,0.25);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;">走丢</div>
+              </div>
+              <div class="lost-entry-item">
+                <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=80&h=80&fit=crop" class="lost-entry-item-img" alt="">
+                <div class="lost-entry-item-info">
+                  <div class="lost-entry-item-name">小七 · 柯基</div>
+                  <div class="lost-entry-item-loc">📍 高新区天府三街</div>
+                </div>
+                <div class="lost-entry-item-badge" style="background:rgba(255,255,255,0.25);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;">走丢</div>
+              </div>
+            </div>
+            <div class="lost-entry-more">查看全部寻狗启示 ›</div>
+          </div>
+          <!-- 动态1 -->
+          <div class="card anim-3">
+            <div class="post-header">
+              <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=100&h=100&fit=crop" class="avatar" alt="">
+              <div style="flex:1;">
+                <div class="username">毛球家长</div>
+                <div class="post-meta"><span>2分钟前</span><span class="breed-tag">柯基</span></div>
+              </div>
+            </div>
+            <img src="https://images.unsplash.com/photo-1612536057433-a6a758115771?w=500&h=300&fit=crop" class="post-img" alt="">
+            <div class="post-content">小短腿今天又犯错了，把我的拖鞋咬烂了👟 但是看到他萌萌的样子又不忍心生气~</div>
+            <div class="post-stats">❤️ 128 · 💬 23 · 🔗 5</div>
+            <div class="post-actions">
+              <button class="action-btn like" onclick="toggleLike(this)">❤️ 赞</button>
+              <button class="action-btn comment" onclick="openNotifyModal()">💬 评论</button>
+              <button class="action-btn share">📤 分享</button>
+            </div>
+          </div>
+          <!-- 动态2 -->
+          <div class="card anim-4">
+            <div class="post-header">
+              <img src="https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=100&h=100&fit=crop" class="avatar" alt="">
+              <div style="flex:1;">
+                <div class="username">哈士奇受害者联盟</div>
+                <div class="post-meta"><span>15分钟前</span><span class="breed-tag">哈士奇</span></div>
+              </div>
+            </div>
+            <img src="https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=500&h=300&fit=crop" class="post-img" alt="">
+            <div class="post-content">拆家王者今日战绩：抽纸一卷、沙发一角、耳机一根...然而它还一脸无辜 😢</div>
+            <div class="post-stats">❤️ 256 · 💬 45 · 🔗 12</div>
+            <div class="post-actions">
+              <button class="action-btn like" onclick="toggleLike(this)">❤️ 赞</button>
+              <button class="action-btn comment" onclick="openNotifyModal()">💬 评论</button>
+              <button class="action-btn share">📤 分享</button>
+            </div>
+          </div>
+          <!-- 动态3 -->
+          <div class="card anim-1">
+            <div class="post-header">
+              <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&h=100&fit=crop" class="avatar" alt="">
+              <div style="flex:1;">
+                <div class="username">金毛豆豆妈</div>
+                <div class="post-meta"><span>1小时前</span><span class="breed-tag">金毛</span></div>
+              </div>
+            </div>
+            <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&h=300&fit=crop" class="post-img" alt="">
+            <div class="post-content">带豆豆去公园跑步，这体力比我都好！全职狗的日子真是太幸福了 🐶</div>
+            <div class="post-stats">❤️ 89 · 💬 15 · 🔗 3</div>
+            <div class="post-actions">
+              <button class="action-btn like" onclick="toggleLike(this)">❤️ 赞</button>
+              <button class="action-btn comment" onclick="openNotifyModal()">💬 评论</button>
+              <button class="action-btn share">📤 分享</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: 知识圈 ===== -->
+      <div class="page" id="page-know">
+        <div class="header">
+          <div class="header-row">
+            <div class="header-title">汪汪知识圈</div>
+            <div class="header-right"><button class="header-btn">🔔</button></div>
+          </div>
+        </div>
+        <div style="padding:0 20px;">
+          <div class="tab-bar" id="knowTabs">
+            <div class="tab-item active" onclick="setKnowTab(this)">🐶 全部</div>
+            <div class="tab-item" onclick="setKnowTab(this)">📚 喂养</div>
+            <div class="tab-item" onclick="setKnowTab(this)">🧠 性格</div>
+            <div class="tab-item" onclick="setKnowTab(this)">🏥 健康</div>
+            <div class="tab-item" onclick="setKnowTab(this)">✂️ 美容</div>
+          </div>
+        </div>
+        <div class="scroll-area">
+          <div class="know-card anim-1">
+            <div class="know-card-top">
+              <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=60&h=60&fit=crop" class="know-avatar" alt="">
+              <div><div class="know-user">宠物营养师小林</div><span class="know-badge">认证达人</span></div>
+            </div>
+            <div class="know-title">🐶 柯基为什么腿那么短？原来藏着皇室血统的秘密</div>
+            <div class="know-preview">柯基的小短腿不是缺陷，而是培育者们精心选择的结果...</div>
+            <div class="know-tags"><span class="know-tag">柯基</span><span class="know-tag">趣味科普</span><span class="know-tag">历史</span></div>
+            <div class="know-footer"><div>❤️ 234 · 💬 56</div><div style="color:var(--primary);">阅读全文 →</div></div>
+          </div>
+          <div class="breed-intro anim-2">
+            <div class="breed-intro-title">🔍 今日品种：柯基 Welsh Corgi</div>
+            <div class="breed-traits">
+              <div class="trait-chip"><span>活力</span>⭐⭐⭐⭐</div>
+              <div class="trait-chip"><span>粘人</span>⭐⭐⭐⭐</div>
+              <div class="trait-chip"><span>掉毛</span>⭐⭐⭐⭐⭐</div>
+              <div class="trait-chip"><span>智商</span>⭐⭐⭐⭐⭐</div>
+              <div class="trait-chip"><span>护主</span>⭐⭐⭐⭐</div>
+            </div>
+          </div>
+          <div class="know-card anim-3">
+            <div class="know-card-top">
+              <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=60&h=60&fit=crop" class="know-avatar" alt="">
+              <div><div class="know-user">资深养宠达人阿梅</div><span class="know-badge" style="background:#E8F5E9;color:#2E7D32">热门</span></div>
+            </div>
+            <div class="know-title">🐕 哈士奇为什么爱拆家？其实是刻在DNA里的工作欲</div>
+            <div class="know-preview">别怪二哈拆家了！它们是西伯利亚雪橇犬，祖辈拉雪橇...</div>
+            <div class="know-tags"><span class="know-tag">哈士奇</span><span class="know-tag">行为解读</span><span class="know-tag">饲养指南</span></div>
+            <div class="know-footer"><div>❤️ 412 · 💬 89</div><div style="color:var(--primary);">阅读全文 →</div></div>
+          </div>
+          <div class="know-card anim-4">
+            <div class="know-card-top">
+              <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=60&h=60&fit=crop" class="know-avatar" alt="">
+              <div><div class="know-user">训犬师老王</div><span class="know-badge" style="background:#E3F2FD;color:#1565C0">专家</span></div>
+            </div>
+            <div class="know-title">💊 狗狗不能吃的20种食物！最后一个99%的人都喂过</div>
+            <div class="know-preview">巧克力、葡萄、洋葱...这些对狗狗有毒！但很多主人不知道的是...</div>
+            <div class="know-tags"><span class="know-tag">健康</span><span class="know-tag">急救</span><span class="know-tag">必看</span><span class="know-tag">喂养</span></div>
+            <div class="know-footer"><div>❤️ 876 · 💬 234</div><div style="color:var(--primary);">阅读全文 →</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: 汪汪 (短视频) ===== -->
+      <div class="page" id="page-showoff">
+        <div class="showoff-container" id="showoffContainer">
+          <!-- 顶部标签 -->
+          <div class="showoff-tabs">
+            <button class="showoff-tab-btn active" onclick="setShowoffTab(this,0)">🔥 推荐</button>
+            <button class="showoff-tab-btn" onclick="setShowoffTab(this,1)">👀 关注</button>
+            <button class="showoff-tab-btn" onclick="setShowoffTab(this,2)">🏠 附近</button>
+          </div>
+
+          <!-- 全屏视频列表（上下滑动） -->
+          <div class="showoff-list" id="showoffList">
+            <!-- ===== 视频0 ===== -->
+            <div class="showoff-item" id="sv-0">
+              <div class="showoff-bg" style="background-image:url('https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&h=1400&fit=crop')"></div>
+              <div class="showoff-overlay">
+                <div class="showoff-user">
+                  <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=80&h=80&fit=crop" class="showoff-avatar" alt="">
+                  <div style="flex:1;"><div class="showoff-username">毛球家长</div><div style="font-size:12px;color:rgba(255,255,255,0.65);">柯基 · 成都武侯区</div></div>
+                  <button class="showoff-follow-btn" onclick="event.stopPropagation();showToast('已关注!')">+ 关注</button>
+                </div>
+                <div class="showoff-text">小短腿跳兔子舞！太可爱了哈哈哈 🐰💃 #柯基 #萌宠</div>
+                <div class="showoff-music">🎵 原声 - 毛球的小窝</div>
+              </div>
+              <div class="showoff-actions">
+                <div class="showoff-action" onclick="toggleSvLike(0)"><button class="showoff-action-btn" id="sv-like-btn-0">❤️</button><div class="showoff-action-count" id="sv-like-num-0">12.8万</div></div>
+                <div class="showoff-action" onclick="openNotifyModal()"><button class="showoff-action-btn">💬</button><div class="showoff-action-count">2.3万</div></div>
+                <div class="showoff-action" onclick="showToast('已分享!')"><button class="showoff-action-btn">↗️</button><div class="showoff-action-count">分享</div></div>
+              </div>
+              <div class="showoff-dots">
+                <div class="showoff-dot active" id="sd-0"></div>
+                <div class="showoff-dot" id="sd-1"></div>
+                <div class="showoff-dot" id="sd-2"></div>
+                <div class="showoff-dot" id="sd-3"></div>
+                <div class="showoff-dot" id="sd-4"></div>
+              </div>
+              <div class="showoff-progress"><div class="showoff-progress-bar" id="progress-0" style="width:0%"></div></div>
+              <button class="showoff-publish" onclick="openAI()">🎬</button>
+            </div>
+
+            <!-- ===== 视频1 ===== -->
+            <div class="showoff-item" id="sv-1">
+              <div class="showoff-bg" style="background-image:url('https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=800&h=1400&fit=crop')"></div>
+              <div class="showoff-overlay">
+                <div class="showoff-user">
+                  <img src="https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=80&h=80&fit=crop" class="showoff-avatar" alt="">
+                  <div style="flex:1;"><div class="showoff-username">哈士奇受害者联盟</div><div style="font-size:12px;color:rgba(255,255,255,0.65);">哈士奇 · 成都锦江区</div></div>
+                  <button class="showoff-follow-btn" onclick="event.stopPropagation();showToast('已关注!')">+ 关注</button>
+                </div>
+                <div class="showoff-text">学狼叫被邻居投诉了😂 但它真的好帅啊！#二哈 #哈士奇 #搞笑</div>
+                <div class="showoff-music">🎵 狼的召唤 - 二哈频道</div>
+              </div>
+              <div class="showoff-actions">
+                <div class="showoff-action" onclick="toggleSvLike(1)"><button class="showoff-action-btn" id="sv-like-btn-1">❤️</button><div class="showoff-action-count" id="sv-like-num-1">8.3万</div></div>
+                <div class="showoff-action" onclick="openNotifyModal()"><button class="showoff-action-btn">💬</button><div class="showoff-action-count">1.5万</div></div>
+                <div class="showoff-action" onclick="showToast('已分享!')"><button class="showoff-action-btn">↗️</button><div class="showoff-action-count">分享</div></div>
+              </div>
+              <div class="showoff-dots">
+                <div class="showoff-dot" id="sd-0b"></div>
+                <div class="showoff-dot active" id="sd-1b"></div>
+                <div class="showoff-dot" id="sd-2b"></div>
+                <div class="showoff-dot" id="sd-3b"></div>
+                <div class="showoff-dot" id="sd-4b"></div>
+              </div>
+              <div class="showoff-progress"><div class="showoff-progress-bar" id="progress-1" style="width:0%"></div></div>
+              <button class="showoff-publish" onclick="openAI()">🎬</button>
+            </div>
+
+            <!-- ===== 视频2 ===== -->
+            <div class="showoff-item" id="sv-2">
+              <div class="showoff-bg" style="background-image:url('https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=1400&fit=crop')"></div>
+              <div class="showoff-overlay">
+                <div class="showoff-user">
+                  <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=80&h=80&fit=crop" class="showoff-avatar" alt="">
+                  <div style="flex:1;"><div class="showoff-username">金毛豆豆妈</div><div style="font-size:12px;color:rgba(255,255,255,0.65);">金毛 · 成都青羊区</div></div>
+                  <button class="showoff-follow-btn" onclick="event.stopPropagation();showToast('已关注!')">+ 关注</button>
+                </div>
+                <div class="showoff-text">帮主人拿快递感动哭了，这狗成精了吧 😭 #金毛 #暖男 #感动</div>
+                <div class="showoff-music">🎵 温柔的力量 - 豆豆的故事</div>
+              </div>
+              <div class="showoff-actions">
+                <div class="showoff-action" onclick="toggleSvLike(2)"><button class="showoff-action-btn" id="sv-like-btn-2">❤️</button><div class="showoff-action-count" id="sv-like-num-2">5.6万</div></div>
+                <div class="showoff-action" onclick="openNotifyModal()"><button class="showoff-action-btn">💬</button><div class="showoff-action-count">8923</div></div>
+                <div class="showoff-action" onclick="showToast('已分享!')"><button class="showoff-action-btn">↗️</button><div class="showoff-action-count">分享</div></div>
+              </div>
+              <div class="showoff-dots">
+                <div class="showoff-dot" id="sd-0c"></div>
+                <div class="showoff-dot" id="sd-1c"></div>
+                <div class="showoff-dot active" id="sd-2c"></div>
+                <div class="showoff-dot" id="sd-3c"></div>
+                <div class="showoff-dot" id="sd-4c"></div>
+              </div>
+              <div class="showoff-progress"><div class="showoff-progress-bar" id="progress-2" style="width:0%"></div></div>
+              <button class="showoff-publish" onclick="openAI()">🎬</button>
+            </div>
+
+            <!-- ===== 视频3 ===== -->
+            <div class="showoff-item" id="sv-3">
+              <div class="showoff-bg" style="background-image:url('https://images.unsplash.com/photo-1587559045816-8b0a54d1a69e?w=800&h=1400&fit=crop')"></div>
+              <div class="showoff-overlay">
+                <div class="showoff-user">
+                  <img src="https://images.unsplash.com/photo-1587559045816-8b0a54d1a69e?w=80&h=80&fit=crop" class="showoff-avatar" alt="">
+                  <div style="flex:1;"><div class="showoff-username">萨摩耶主人阿明</div><div style="font-size:12px;color:rgba(255,255,255,0.65);">萨摩耶 · 成都成华区</div></div>
+                  <button class="showoff-follow-btn" onclick="event.stopPropagation();showToast('已关注!')">+ 关注</button>
+                </div>
+                <div class="showoff-text">第一次见到雪的萨摩耶，这表情太治愈了 ❄️ #萨摩耶 #下雪 #笑容天使</div>
+                <div class="showoff-music">🎵 冬日暖阳 - 萨摩耶日记</div>
+              </div>
+              <div class="showoff-actions">
+                <div class="showoff-action" onclick="toggleSvLike(3)"><button class="showoff-action-btn" id="sv-like-btn-3">❤️</button><div class="showoff-action-count" id="sv-like-num-3">18.5万</div></div>
+                <div class="showoff-action" onclick="openNotifyModal()"><button class="showoff-action-btn">💬</button><div class="showoff-action-count">3.2万</div></div>
+                <div class="showoff-action" onclick="showToast('已分享!')"><button class="showoff-action-btn">↗️</button><div class="showoff-action-count">分享</div></div>
+              </div>
+              <div class="showoff-dots">
+                <div class="showoff-dot" id="sd-0d"></div>
+                <div class="showoff-dot" id="sd-1d"></div>
+                <div class="showoff-dot" id="sd-2d"></div>
+                <div class="showoff-dot active" id="sd-3d"></div>
+                <div class="showoff-dot" id="sd-4d"></div>
+              </div>
+              <div class="showoff-progress"><div class="showoff-progress-bar" id="progress-3" style="width:0%"></div></div>
+              <button class="showoff-publish" onclick="openAI()">🎬</button>
+            </div>
+
+            <!-- ===== 视频4 ===== -->
+            <div class="showoff-item" id="sv-4">
+              <div class="showoff-bg" style="background-image:url('https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=1400&fit=crop')"></div>
+              <div class="showoff-overlay">
+                <div class="showoff-user">
+                  <img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=80&h=80&fit=crop" class="showoff-avatar" alt="">
+                  <div style="flex:1;"><div class="showoff-username">边牧主人Lisa</div><div style="font-size:12px;color:rgba(255,255,255,0.65);">边牧 · 成都天府新区</div></div>
+                  <button class="showoff-follow-btn" onclick="event.stopPropagation();showToast('已关注!')">+ 关注</button>
+                </div>
+                <div class="showoff-text">边牧和主人玩飞盘，这智商碾压全场 🏆 #边牧 #飞盘 #智商碾压</div>
+                <div class="showoff-music">🎵 速度与激情 - 边牧时刻</div>
+              </div>
+              <div class="showoff-actions">
+                <div class="showoff-action" onclick="toggleSvLike(4)"><button class="showoff-action-btn" id="sv-like-btn-4">❤️</button><div class="showoff-action-count" id="sv-like-num-4">23.1万</div></div>
+                <div class="showoff-action" onclick="openNotifyModal()"><button class="showoff-action-btn">💬</button><div class="showoff-action-count">4.1万</div></div>
+                <div class="showoff-action" onclick="showToast('已分享!')"><button class="showoff-action-btn">↗️</button><div class="showoff-action-count">分享</div></div>
+              </div>
+              <div class="showoff-dots">
+                <div class="showoff-dot" id="sd-0e"></div>
+                <div class="showoff-dot" id="sd-1e"></div>
+                <div class="showoff-dot" id="sd-2e"></div>
+                <div class="showoff-dot" id="sd-3e"></div>
+                <div class="showoff-dot active" id="sd-4e"></div>
+              </div>
+              <div class="showoff-progress"><div class="showoff-progress-bar" id="progress-4" style="width:0%"></div></div>
+              <button class="showoff-publish" onclick="openAI()">🎬</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: 臭美秀 (穿搭展示) ===== -->
+      <div class="page" id="page-market">
+        <div class="header">
+          <div class="header-row">
+            <div class="header-title">✨ 臭美秀</div>
+            <div class="header-right">
+              <button class="header-btn" onclick="showToast('发布功能开发中...')">📷</button>
+            </div>
+          </div>
+        </div>
+        <div class="scroll-area">
+          <!-- 分类Tab -->
+          <div class="dressup-tabs">
+            <div class="dressup-tab active" onclick="setDressupCat(this)">🌟 今日穿搭</div>
+            <div class="dressup-tab" onclick="setDressupCat(this)">🎀 萌宠装扮</div>
+            <div class="dressup-tab" onclick="setDressupCat(this)">💇 美颜造型</div>
+            <div class="dressup-tab" onclick="setDressupCat(this)">🛁 洗澡美容</div>
+            <div class="dressup-tab" onclick="setDressupCat(this)">🎉 节日特辑</div>
+          </div>
+
+          <!-- 九宫格画廊 — 点开图片查看详情 -->
+          <div class="dressup-grid">
+            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(0)">
+            <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(1)">
+            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(2)">
+            <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(3)">
+            <img src="https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(4)">
+            <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(5)">
+            <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(6)">
+            <img src="https://images.unsplash.com/photo-1612536057433-a6a758115771?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(7)">
+            <img src="https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=400&h=400&fit=crop" class="dressup-thumb" onclick="openDressupModal(8)">
+          </div>
+
+          <div style="text-align:center;padding:16px 0 30px;">
+            <div style="font-size:12px;color:var(--gray-light);">点开图片 · 查看装扮攻略</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 穿搭详情弹窗 -->
+      <div class="dressup-modal" id="dressupModal">
+        <div class="dressup-modal-top">
+          <button class="dressup-modal-close" onclick="closeDressupModal()">✕</button>
+          <button class="dressup-modal-share" onclick="showToast('已分享!')">↗️</button>
+        </div>
+        <img src="" class="dressup-modal-img" id="dmImg" alt="">
+        <div class="dressup-modal-body" id="dmBody"></div>
+      </div>
+
+      <!-- ===== PAGE: 我的 ===== -->
+      <div class="page" id="page-me">
+        <div class="profile-banner"></div>
+        <div class="profile-info">
+          <div class="profile-avatar-row">
+            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=100&h=100&fit=crop" class="profile-avatar" alt="">
+            <div><div class="profile-name">🐾 铲屎官小明</div><div class="profile-id">ID: 88886666</div></div>
+          </div>
+          <div class="profile-stats-row">
+            <div class="profile-stat"><div class="profile-stat-num">28</div><div class="profile-stat-label">发帖</div></div>
+            <div class="profile-stat"><div class="profile-stat-num">1.2k</div><div class="profile-stat-label">粉丝</div></div>
+            <div class="profile-stat"><div class="profile-stat-num">3.5k</div><div class="profile-stat-label">获赞</div></div>
+            <div class="profile-stat"><div class="profile-stat-num">156</div><div class="profile-stat-label">汪星</div></div>
+          </div>
+          <div class="profile-bio">养了一只超可爱的比熊叫棉花糖🐩，3岁男孩，最爱干饭和撕纸巾！</div>
+          <div class="profile-tags">
+            <span class="profile-tag">🐩 比熊</span><span class="profile-tag">成都</span><span class="profile-tag">铲屎官</span>
+          </div>
+          <button class="profile-btn">✏️ 编辑资料</button>
+        </div>
+        <div style="padding:15px 20px 90px;">
+          <div class="card anim-1">
+            <div class="card-title">📋 我的内容</div>
+            <div style="display:flex;gap:10px;">
+              <div style="flex:1;background:#F9F9F9;border-radius:12px;padding:14px;text-align:center;"><div style="font-size:20px;">📸</div><div style="font-size:12px;color:var(--gray);margin-top:4px;">帖子</div></div>
+              <div style="flex:1;background:#F9F9F9;border-radius:12px;padding:14px;text-align:center;"><div style="font-size:20px;">🎬</div><div style="font-size:12px;color:var(--gray);margin-top:4px;">短视频</div></div>
+              <div style="flex:1;background:#F9F9F9;border-radius:12px;padding:14px;text-align:center;"><div style="font-size:20px;">📚</div><div style="font-size:12px;color:var(--gray);margin-top:4px;">知识</div></div>
+              <div style="flex:1;background:#F9F9F9;border-radius:12px;padding:14px;text-align:center;"><div style="font-size:20px;">❤️</div><div style="font-size:12px;color:var(--gray);margin-top:4px;">收藏</div></div>
+            </div>
+          </div>
+          <div class="card anim-2">
+            <div class="card-title">🐾 我的汪星人</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=80&h=80&fit=crop" style="width:60px;height:60px;border-radius:15px;object-fit:cover;">
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:14px;">棉花糖</div>
+                <div style="font-size:12px;color:var(--gray);">比熊 · 3岁 · 男孩</div>
+                <div style="font-size:11px;color:var(--secondary);margin-top:2px;">已认证 ✅</div>
+              </div>
+              <button onclick="openAI()" style="background:#E8F6F5;border:none;padding:8px 14px;border-radius:12px;font-size:12px;color:var(--secondary-dark);font-weight:600;cursor:pointer;">🤖 AI识别</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 底部导航 ===== -->
+      <div class="nav-bar">
+        <div class="nav-item active" onclick="switchTab(0)"><span class="nav-icon">📖</span><span class="nav-label">汪汪日记</span></div>
+        <div class="nav-item" onclick="switchTab(1)"><span class="nav-icon">📚</span><span class="nav-label">知识圈</span></div>
+        <div class="nav-item" onclick="switchTab(2)"><span class="nav-icon">🐾</span><span class="nav-label">汪汪</span></div>
+        <div class="nav-item" onclick="switchTab(3)"><span class="nav-icon">✨</span><span class="nav-label">臭美秀</span></div>
+        <div class="nav-item" onclick="switchTab(4)"><span class="nav-icon">👤</span><span class="nav-label">我的</span></div>
+      </div>
+    </div>
+
+    <!-- ===== AI 识别弹窗 ===== -->
+    <div class="modal" id="aiModal">
+      <button class="close-modal" onclick="closeAI()">✕</button>
+      <div class="camera-view">
+        <div class="camera-scan-line"></div>
+        <div class="camera-frame"><div class="camera-icon">📷</div></div>
+        <div class="camera-hint">将狗狗放入框内<br>AI自动识别品种</div>
+        <div class="result-card" id="resultCard">
+          <div class="result-row">
+            <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=80&h=80&fit=crop" class="result-img" alt="">
+            <div><div class="result-name">柯基犬 Pembroke Welsh Corgi</div><div class="result-conf">🤖 AI识别 · 置信度 98.5%</div></div>
+          </div>
+          <div class="result-tags">
+            <span class="result-tag">🐕 小型犬</span>
+            <span class="result-tag">⭐活泼好动</span>
+            <span class="result-tag">👶适合家庭</span>
+            <span class="result-tag">🧠智商高</span>
+            <span class="result-tag">💰3000-8000元</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 寻狗启示弹窗 ===== -->
+    <div class="lost-modal" id="lostModal">
+      <div class="lost-modal-inner">
+        <div class="lost-modal-header">
+          <div class="lost-modal-title">🚨 寻狗启示</div>
+          <button class="lost-modal-close" onclick="closeLostModal()">✕</button>
+        </div>
+        <div class="lost-modal-body">
+          <div class="lost-banner">
+            <div class="lost-banner-title">紧急寻主 · 爱心接力</div>
+            <div class="lost-banner-desc">每一条信息背后都是一个家庭的牵挂，您的每一次转发都在帮助它们回家</div>
+            <button class="lost-banner-btn" onclick="showToast('发布功能开发中...')">➕ 发布寻狗启示</button>
+          </div>
+          <div class="lost-tabs">
+            <button class="lost-tab active" id="tabLost" onclick="setLostTab('lost')">🔍 寻狗启示</button>
+            <button class="lost-tab found" id="tabFound" onclick="setLostTab('found')">🏠 找主人</button>
+          </div>
+          <!-- 寻狗列表 -->
+          <div id="lostList">
+            <div class="lost-card" onclick="showToast('详情页开发中...')">
+              <div class="lost-card-top">
+                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=200&h=200&fit=crop" class="lost-card-img" alt="">
+                <div class="lost-card-body">
+                  <span class="lost-card-type type-lost">🔴 走丢</span>
+                  <div class="lost-card-name">棉花糖</div>
+                  <div class="lost-card-breed">比熊 · 3岁 · 白色</div>
+                  <div class="lost-card-loc">📍 武侯区玉林路</div>
+                  <div class="lost-card-time">⏰ 4月12日 18:30</div>
+                </div>
+              </div>
+              <div class="lost-card-footer">
+                <div class="lost-stats">❤️ 234 帮助扩散</div>
+                <button class="lost-help-btn" onclick="event.stopPropagation();showToast('已分享到朋友圈!')">帮扩散</button>
+              </div>
+            </div>
+            <div class="lost-card" onclick="showToast('详情页开发中...')">
+              <div class="lost-card-top">
+                <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop" class="lost-card-img" alt="">
+                <div class="lost-card-body">
+                  <span class="lost-card-type type-lost">🔴 走丢</span>
+                  <div class="lost-card-name">小七</div>
+                  <div class="lost-card-breed">柯基 · 2岁 · 黄白双色</div>
+                  <div class="lost-card-loc">📍 高新区天府三街</div>
+                  <div class="lost-card-time">⏰ 4月13日 07:00</div>
+                </div>
+              </div>
+              <div class="lost-card-footer">
+                <div class="lost-reward-tag">🎁 ¥500</div>
+                <button class="lost-help-btn" onclick="event.stopPropagation();showToast('已分享到朋友圈!')">帮扩散</button>
+              </div>
+            </div>
+            <div class="lost-card found-card" onclick="showToast('详情页开发中...')">
+              <div class="lost-card-top">
+                <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=200&h=200&fit=crop" class="lost-card-img" alt="">
+                <div class="lost-card-body">
+                  <span class="lost-card-type type-found">🟢 捡到</span>
+                  <div class="lost-card-name">（待认领）</div>
+                  <div class="lost-card-breed">哈士奇 · 成犬 · 灰白色</div>
+                  <div class="lost-card-loc">📍 锦江区春熙路</div>
+                  <div class="lost-card-time">⏰ 4月13日 10:00</div>
+                </div>
+              </div>
+              <div class="lost-card-footer">
+                <div class="lost-stats">❤️ 123 帮转发</div>
+                <button class="lost-help-btn" onclick="event.stopPropagation();showToast('已分享!')">帮转发</button>
+              </div>
+            </div>
+            <div class="lost-card" onclick="showToast('详情页开发中...')">
+              <div class="lost-card-top">
+                <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=200&h=200&fit=crop" class="lost-card-img" alt="">
+                <div class="lost-card-body">
+                  <span class="lost-card-type type-lost">🔴 走丢</span>
+                  <div class="lost-card-name">大金毛</div>
+                  <div class="lost-card-breed">金毛 · 5岁 · 金色</div>
+                  <div class="lost-card-loc">📍 青羊区宽窄巷子</div>
+                  <div class="lost-card-time">⏰ 4月11日 15:00</div>
+                </div>
+              </div>
+              <div class="lost-card-footer">
+                <div class="lost-reward-tag">🎁 ¥2000</div>
+                <button class="lost-help-btn" onclick="event.stopPropagation();showToast('已分享到朋友圈!')">帮扩散</button>
+              </div>
+            </div>
+          </div>
+          <!-- 找主人列表（隐藏） -->
+          <div id="foundList" style="display:none;">
+            <div class="lost-card found-card" onclick="showToast('详情页开发中...')">
+              <div class="lost-card-top">
+                <img src="https://images.unsplash.com/photo-1587559045816-8b0a54d1a69e?w=200&h=200&fit=crop" class="lost-card-img" alt="">
+                <div class="lost-card-body">
+                  <span class="lost-card-type type-found">🟢 捡到</span>
+                  <div class="lost-card-name">（待认领）</div>
+                  <div class="lost-card-breed">萨摩耶 · 成年 · 白色</div>
+                  <div class="lost-card-loc">📍 武侯区九方购物中心</div>
+                  <div class="lost-card-time">⏰ 4月13日 09:30</div>
+                </div>
+              </div>
+              <div class="lost-card-footer">
+                <div class="lost-stats">❤️ 345 帮转发</div>
+                <button class="lost-help-btn" onclick="event.stopPropagation();showToast('已分享!')">帮转发</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 消息通知弹窗 -->
+    <div class="notify-modal" id="notifyModal">
+      <div class="notify-modal-inner">
+        <div class="notify-modal-header">
+          <div class="notify-modal-title">🔔 消息通知</div>
+          <button class="notify-modal-close" onclick="closeNotifyModal()">✕</button>
+        </div>
+        <div class="notify-modal-body">
+          <div class="msg-notif anim-1">
+            <div class="msg-notif-top">
+              <div class="msg-notif-icon">🚨</div>
+              <div class="msg-notif-title">紧急寻狗 · 棉花糖</div>
+              <div class="msg-notif-time">2小时前</div>
+            </div>
+            <div class="msg-notif-body">白色比熊3岁，在武侯区玉林路走丢，主人很着急！看到请联系...</div>
+            <button class="msg-notif-btn" onclick="openLostModal();closeNotifyModal();">🚨 查看详情</button>
+          </div>
+          <div class="msg-found anim-2">
+            <div class="msg-notif-top">
+              <div class="msg-notif-icon">🎉</div>
+              <div class="msg-notif-title">好消息 · 小七已找到！</div>
+              <div class="msg-notif-time">今天</div>
+            </div>
+            <div class="msg-notif-body">❤️ 好消息！柯基小七已被好心人找到，平安回家！感谢所有帮忙转发的好心人！</div>
+            <button class="msg-notif-btn" onclick="closeNotifyModal();showToast('🙏 祝福送达!')">🙏 送去祝福</button>
+          </div>
+          <div class="card anim-3" style="padding:14px;">
+            <div class="card-title">💬 聊天</div>
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #F0F0F0;cursor:pointer;">
+              <div style="width:44px;height:44px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">🐶</div>
+              <div style="flex:1;"><div style="font-weight:700;font-size:14px;">柯基家长群</div><div style="font-size:12px;color:var(--gray);">毛球妈：大家今天遛狗了吗？</div></div>
+              <div style="font-size:10px;color:var(--gray);">刚刚</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 0;cursor:pointer;">
+              <div style="width:44px;height:44px;background:var(--secondary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">🐕</div>
+              <div style="flex:1;"><div style="font-weight:700;font-size:14px;">🐕 成都汪友圈</div><div style="font-size:12px;color:var(--gray);">系统：欢迎新成员加入成都汪友圈！</div></div>
+              <div style="font-size:10px;color:var(--gray);">今天</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast"></div>
+
+  </div>
+
+  <script>
+    // ==== Splash ====
+    setTimeout(() => {
+      document.getElementById('splash').classList.add('hidden');
+      document.getElementById('app').classList.add('visible');
+    }, 1600);
+
+    // ==== Tab Navigation ====
+    const PAGES = ['page-home','page-know','page-showoff','page-market','page-me'];
+    function switchTab(idx) {
+      PAGES.forEach((id,i) => document.getElementById(id).classList.toggle('active', i===idx));
+      document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===idx));
+      // 臭美秀页面特殊处理：进入时定位到当前视频
+      if (idx === 2) setTimeout(snapToCurrentVideo, 100);
+    }
+
+    // ==== Like ====
+    function toggleLike(btn) {
+      btn.classList.toggle('liked');
+      btn.innerHTML = btn.classList.contains('liked') ? '❤️ 已赞' : '❤️ 赞';
+    }
+
+    // ==== AI Modal ====
+    function openAI() {
+      const m = document.getElementById('aiModal'), r = document.getElementById('resultCard');
+      m.classList.add('visible');
+      r.classList.remove('visible');
+      setTimeout(() => r.classList.add('visible'), 1500);
+    }
+    function closeAI() { document.getElementById('aiModal').classList.remove('visible'); }
+
+    // ==== Lost Modal ====
+    function openLostModal() {
+      document.getElementById('lostModal').classList.add('visible');
+      setTimeout(() => document.getElementById('lostModal').scrollTop = 0, 50);
+    }
+    function closeLostModal() { document.getElementById('lostModal').classList.remove('visible'); }
+    function setLostTab(type) {
+      document.getElementById('tabLost').classList.toggle('active', type === 'lost');
+      document.getElementById('tabFound').classList.toggle('active', type === 'found');
+      document.getElementById('lostList').style.display = type === 'lost' ? 'block' : 'none';
+      document.getElementById('foundList').style.display = type === 'found' ? 'block' : 'none';
+    }
+
+    // ==== 集市 ====
+    const PRODUCTS = [
+      { name:'皇家皇家犬奶糕 幼犬奶糕狗粮 1kg装', price:'¥38', ori:'¥58', sales:'23万+', breed:'🐶 适合幼犬', img:'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=600&h=400&fit=crop', desc:'专为幼犬研制，营养均衡易吸收。添加益生元，呵护幼犬娇嫩肠胃。优质动物蛋白，科学钙磷比，助力幼犬健康成长。品牌授权，正品保障。' },
+      { name:'霍曼宠物自动饮水机 流动活水狗狗饮水器', price:'¥89', ori:'¥129', sales:'9800', breed:'💧 通用', img:'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=400&fit=crop', desc:'模拟自然泉水流动，激发宠物饮水兴趣。不锈钢内胆，易拆洗不留污。静音设计，不打扰主人休息。三重过滤系统，保证水质洁净。' },
+      { name:'狗狗户外牵引绳 防爆冲 大型犬专用 3米加长款', price:'¥25', ori:'¥45', sales:'5.6万', breed:'🦮 大型犬', img:'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop', desc:'加粗尼龙材质，防爆冲设计，保护主人安全。3米加长款，狗狗自由奔跑。夜间反光条，夜遛更安全。多档位手柄，握感舒适。' },
+      { name:'宠物狗狗衣服秋冬装加绒小泰迪比熊保暖四脚衣', price:'¥19.9', ori:'¥39', sales:'3.2万', breed:'🐩 小型犬', img:'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=600&h=400&fit=crop', desc:'加厚摇粒绒内里，保暖透气不闷热。四角设计，狗狗穿着不掉。多种花色可选，拍照超好看。S/M/L/XL码可选，胖瘦狗狗都合适。' },
+      { name:'宠物牙膏牙刷套装 狗狗专用口气清新 130g', price:'¥16.8', ori:'¥28', sales:'1.8万', breed:'🦷 口腔护理', img:'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&h=400&fit=crop', desc:'鸡肉味牙膏，狗狗不抗拒。超细软毛刷头，温和清洁不伤牙龈。每天使用，预防牙结石，还你口气清新的小可爱。套装含牙膏+牙刷各1支。' },
+      { name:'狗咬胶玩具磨牙棒耐咬 大型犬金毛萨摩耶专用', price:'¥12.9', ori:'¥22', sales:'8.9万', breed:'🦴 通用', img:'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=600&h=400&fit=crop', desc:'天然橡胶材质，安全无毒。高密度加厚，耐咬不伤牙。独特纹理设计，帮助清洁牙垢。适合中大型犬，满足狗狗磨牙天性。' }
+    ];
+
+    function setMarketCat(el) {
+      el.parentElement.querySelectorAll('.market-cat').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function setDressupCat(el) {
+      el.parentElement.querySelectorAll('.dressup-tab').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      showToast('切换穿搭分类中...');
+    }
+
+    const DRESSUP = [
+      {
+        img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=100&h=100&fit=crop',
+        username: '🐩 棉花糖穿搭日记', breed: '比熊 · 3岁男孩',
+        likes: 1286, comments: 89,
+        sections: [
+          { title: '👕 今日穿搭', text: '白色比熊穿加绒四脚衣真的太乖了！用的是某宝「宠物加绒四脚衣」，搜店铺"汪星人服饰馆"就能找到同款。尺码选的是L码，棉花糖体重4.5kg穿L刚好～' },
+          { title: '💡 穿搭技巧', text: '白色狗穿浅色衣服最出片，但要注意材质要不掉毛的！四脚衣比背心更保暖，肚子不容易着凉。冬天出门遛弯穿这个再也不怕冷了～' },
+          { title: '🛒 同款好物', items: ['宠物加绒四脚衣 · ¥29.9', '白色宠物围巾 · ¥12.9', '防滑宠物鞋 · ¥19.9'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=100&h=100&fit=crop',
+        username: '🐕 微笑天使小雪', breed: '萨摩耶 · 2岁女孩',
+        likes: 2567, comments: 134,
+        sections: [
+          { title: '💇 美颜造型', text: '这次给萨摩做了"蘑菇头"造型，脸显得更圆更可爱！用的推子是#7号刀头，从下巴到头顶渐变修剪，两侧留长显脸小。美容花了80元，耗时约1.5小时。' },
+          { title: '✨ 造型心得', text: '萨摩的毛要定期打理，每周梳毛3次以上避免打结。洗澡用宠物专用护毛素，吹干时边吹边梳，这样毛才蓬松。耳朵和眉毛的线条修剪是灵魂！' },
+          { title: '🏠 推荐店铺', items: ['成都汪星人宠物美容 · 锦江区', '萌爪宠物工作室 · 高新区'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100&h=100&fit=crop',
+        username: '🐶 元宝日记', breed: '柯基 · 1岁男孩',
+        likes: 4892, comments: 267,
+        sections: [
+          { title: '🧧 节日穿搭', text: '新年给元宝穿上了红色小唐装，背面还有一个"福"字！狗狗穿上唐装屁股扭起来超可爱，拍照100%出片。衣服是定制的，红色绸缎面料，狗狗穿着也很舒服不抗拒。' },
+          { title: '🎁 节日装扮建议', text: '柯基腿短，唐装选短款更协调。尺码要量好胸围和背长，避免太大影响活动。节日装不用买太贵的，租借或者买性价比高的都可以，一年就穿几次～' },
+          { title: '🛒 同款好物', items: ['宠物唐装红色 · ¥39', '宠物过年围巾 · ¥15', '节日装饰蝴蝶结 · ¥9.9'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=100&h=100&fit=crop',
+        username: '🦮 豆芽の日常', breed: '金毛 · 4岁男孩',
+        likes: 876, comments: 56,
+        sections: [
+          { title: '🌂 雨天装备', text: '黄色宠物雨衣是雨天的救星！金毛体型大，一般雨伞遮不住，这件雨衣从脖子覆盖到尾巴根，全身干爽。材质是防水涂层，200斤金毛蹦跶都不会破。' },
+          { title: '🌧️ 雨天遛狗Tips', text: '雨天遛完回家要擦干脚掌和肚子，特别是耳朵要检查有没有进水。雨后还要注意驱虫，泥土里有很多虫卵。下雨天遛狗时间可以短一些，让狗狗在外面解决完大小便就回家。' },
+          { title: '🛒 同款好物', items: ['宠物黄色雨衣XL码 · ¥45', '宠物吸水毛巾大号 · ¥18', '雨鞋套防滑 · ¥22'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=100&h=100&fit=crop',
+        username: '🐩 小公主奶油', breed: '比熊 · 2岁女孩',
+        likes: 3421, comments: 198,
+        sections: [
+          { title: '🎀 配饰推荐', text: '蝴蝶结发夹是比熊女孩的标配！用的是韩国进口丝绒材质，软软的不勒头。颜色选了和白色毛发对比鲜明的粉色，戴上瞬间变成小公主。' },
+          { title: '💄 打扮心得', text: '比熊耳朵毛发多，蝴蝶结别在头顶偏后的位置最好看。发夹要选轻的，不然狗狗会一直挠。出门前喷一点点宠物香水（无酒精的），回头率200%！' },
+          { title: '🛒 同款好物', items: ['丝绒蝴蝶结发夹 · ¥9.9/个', '宠物无酒精香水 · ¥28', '公主小裙子 · ¥35'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=100&h=100&fit=crop',
+        username: '🐕 乖乖虎', breed: '金毛 · 3岁男孩',
+        likes: 1567, comments: 88,
+        sections: [
+          { title: '🧥 户外穿搭', text: '春秋天带金毛出门，一件简单的户外工装背心就够了。耐磨防水面料，狗狗钻草丛也不怕脏。橙色很显眼，遛狗时远远就能看到它，安全加分！' },
+          { title: '🏕️ 户外装备Tips', text: '带金毛去户外玩，背心+牵引绳是标配。背心上最好有反光条，夜跑时更安全。还要带水和折叠水碗，避免狗狗脱水。' },
+          { title: '🛒 同款好物', items: ['户外工装背心橙色XL · ¥38', '宠物折叠水碗 · ¥12', '户外牵引绳3米 · ¥25'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=100&h=100&fit=crop',
+        username: '🦴 小短腿帕皮', breed: '柯基 · 2岁女孩',
+        likes: 2310, comments: 145,
+        sections: [
+          { title: '👗 裙子穿搭', text: '给柯基穿了粉色蓬蓬裙，可爱到犯规！裙子后面有个小开衩，刚好露出柯基标志性的大屁股，走起来一扭一扭的超级萌。这是柯基最适合穿裙子的小秘密～' },
+          { title: '🐾 选裙子技巧', text: '柯基身材特殊，裙子要选后面短前面长的设计，这样前面护肚子，后面露屁股。腰部要有松紧可调节，太紧会勒到，太松会掉。小型犬裙子尺码通用，中型犬要选大一号。' },
+          { title: '🛒 同款好物', items: ['宠物粉色蓬蓬裙 · ¥28', '公主发箍 · ¥12', '粉色牵引带 · ¥18'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1612536057433-a6a758115771?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1612536057433-a6a758115771?w=100&h=100&fit=crop',
+        username: '🐶 哈士奇小明', breed: '哈士奇 · 1岁男孩',
+        likes: 987, comments: 67,
+        sections: [
+          { title: '🧣 冬日保暖', text: '哈士奇虽然是雪橇犬，但南方的冬天也要注意保暖！这件红色连帽斗篷既暖和又拉风，帽子可以挡风，斗篷可以护住背部和肚子。哈士奇穿上之后看起来更帅了！' },
+          { title: '❄️ 保暖知识', text: '哈士奇原产寒带，南方的湿冷反而容易让它们着凉。低于10度出门可以加件背心，低于5度可以戴个帽子。室内外温差大时，回家不要马上脱掉外套，让身体慢慢适应。' },
+          { title: '🛒 同款好物', items: ['宠物连帽斗篷红色 · ¥42', '加绒保暖背心 · ¥35', '宠物棉鞋 · ¥25'] }
+        ]
+      },
+      {
+        img: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=700&h=500&fit=crop',
+        avatar: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=100&h=100&fit=crop',
+        username: '🐺 哈士奇受害者联盟', breed: '哈士奇 · 2岁男孩',
+        likes: 4521, comments: 312,
+        sections: [
+          { title: '😱 拆家之后', text: '二哈又拆家了，这次是皮沙发！但我决定给它一个台阶——穿上"我是坏孩子"小T恤，拍照留念。T恤是定制的，背后印了"我错了但我下次还敢"，回头率100%，气都消了一半😂' },
+          { title: '🐶 二哈穿搭哲学', text: '哈士奇天生就是衣服架子，穿什么都好看。它们精力旺盛，衣服要选透气不限制活动的。项圈比背带更适合二哈，避免它们用力挣脱。' },
+          { title: '🛒 同款好物', items: ['二哈定制T恤 · ¥32', '防爆冲项圈 · ¥15', '外出背包水壶 · ¥45'] }
+        ]
+      }
+    ];
+
+    function openDressupModal(idx) {
+      const d = DRESSUP[idx];
+      document.getElementById('dmImg').src = d.img;
+      let html = `
+        <div class="dressup-modal-user">
+          <img src="${d.avatar}" class="dressup-modal-avatar" alt="">
+          <div>
+            <div class="dressup-modal-username">${d.username}</div>
+            <div class="dressup-modal-breed">${d.breed}</div>
+          </div>
+        </div>
+        <div class="dressup-modal-actions">
+          <button class="dressup-modal-btn like" id="dmLikeBtn" onclick="toggleDressupLike(this)">❤️ 点赞</button>
+          <button class="dressup-modal-btn collect" onclick="showToast('已收藏!')">⭐ 收藏</button>
+        </div>
+        <div class="dressup-modal-like-count">${d.likes.toLocaleString()} 点赞 · ${d.comments} 评论</div>
+      `;
+      d.sections.forEach(sec => {
+        html += `<div class="dressup-modal-section"><div class="dressup-modal-section-title">${sec.title}</div>`;
+        if (sec.text) html += `<div class="dressup-modal-section-text">${sec.text}</div>`;
+        if (sec.items) {
+          html += `<div class="dressup-modal-tags">`;
+          sec.items.forEach(item => {
+            const isProduct = item.includes('¥');
+            html += `<span class="dressup-modal-tag${isProduct ? ' buy' : ''}" onclick="${isProduct ? "showToast('正在跳转淘宝...')" : "showToast('查看详情中...')"}">${item}</span>`;
+          });
+          html += `</div>`;
+        }
+        html += `</div>`;
+      });
+      document.getElementById('dmBody').innerHTML = html;
+      document.getElementById('dressupModal').classList.add('visible');
+    }
+
+    function closeDressupModal() {
+      document.getElementById('dressupModal').classList.remove('visible');
+    }
+
+    function toggleDressupLike(btn) {
+      if (btn.classList.contains('liked')) {
+        btn.classList.remove('liked');
+        btn.innerHTML = '❤️ 点赞';
+        showToast('取消点赞');
+      } else {
+        btn.classList.add('liked');
+        btn.innerHTML = '✅ 已赞';
+        showToast('点赞成功!');
+      }
+    }
+
+    function openProduct(idx) {
+      const p = PRODUCTS[idx];
+      document.getElementById('pmName').textContent = p.name;
+      document.getElementById('pmPrice').textContent = p.price;
+      document.getElementById('pmOri').textContent = p.ori;
+      document.getElementById('pmImg').src = p.img;
+      document.getElementById('pmDesc').textContent = p.desc;
+      document.getElementById('productModal').classList.add('visible');
+    }
+    function closeProduct() { document.getElementById('productModal').classList.remove('visible'); }
+
+    // ==== 消息通知弹窗 ====
+    function openNotifyModal() { document.getElementById('notifyModal').classList.add('visible'); }
+    function closeNotifyModal() { document.getElementById('notifyModal').classList.remove('visible'); }
+
+    // 点击遮罩关闭
+    document.getElementById('productModal')?.addEventListener('click', function(e) {
+      if (e.target === this) closeProduct();
+    });
+    document.getElementById('notifyModal')?.addEventListener('click', function(e) {
+      if (e.target === this) closeNotifyModal();
+    });
+
+    // ==== Toast ====
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.opacity = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(-50%) translateY(20px)';
+      }, 2200);
+    }
+
+    // ==== 臭美秀：抖音式上下滑 ====
+    const showoffList = document.getElementById('showoffList');
+    const TOTAL_VIDEOS = 5;
+    let currentVideo = 0;
+    let touchStartY = 0;
+    let touchStartX = 0;
+
+    function setShowoffTab(el, idx) {
+      el.parentElement.querySelectorAll('.showoff-tab-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function goToVideo(idx) {
+      if (idx < 0 || idx >= TOTAL_VIDEOS) return;
+      currentVideo = idx;
+      const item = document.getElementById('sv-' + idx);
+      if (item) {
+        item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      updateDots(idx);
+    }
+
+    function updateDots(idx) {
+      // 更新每组dots
+      const groups = [
+        ['sd-0','sd-1','sd-2','sd-3','sd-4'],
+        ['sd-0b','sd-1b','sd-2b','sd-3b','sd-4b'],
+        ['sd-0c','sd-1c','sd-2c','sd-3c','sd-4c'],
+        ['sd-0d','sd-1d','sd-2d','sd-3d','sd-4d'],
+        ['sd-0e','sd-1e','sd-2e','sd-3e','sd-4e'],
+      ];
+      groups.forEach(group => {
+        group.forEach((id, i) => {
+          const dot = document.getElementById(id);
+          if (dot) dot.classList.toggle('active', i === idx);
+        });
+      });
+    }
+
+    function snapToCurrentVideo() {
+      const container = document.getElementById('showoffContainer');
+      const containerHeight = container.offsetHeight;
+      const scrollTop = showoffList.scrollTop;
+      const idx = Math.round(scrollTop / containerHeight);
+      currentVideo = Math.max(0, Math.min(idx, TOTAL_VIDEOS - 1));
+      showoffList.scrollTo({ top: currentVideo * containerHeight, behavior: 'instant' });
+      updateDots(currentVideo);
+    }
+
+    // 触摸事件
+    showoffList.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+
+    showoffList.addEventListener('touchend', (e) => {
+      const deltaY = touchStartY - e.changedTouches[0].clientY;
+      const deltaX = touchStartX - e.changedTouches[0].clientX;
+      // 只识别上下滑动（纵向偏移 > 横向偏移，且超过50px）
+      if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 50) {
+        if (deltaY > 0) {
+          // 上滑 → 下一个视频
+          goToVideo(currentVideo + 1);
+        } else {
+          // 下滑 → 上一个视频
+          goToVideo(currentVideo - 1);
+        }
+      }
+    }, { passive: true });
+
+    // 滚动停止后自动对齐到最近的视频
+    let scrollTimer = null;
+    showoffList.addEventListener('scroll', () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        const containerHeight = document.getElementById('showoffContainer').offsetHeight;
+        const idx = Math.round(showoffList.scrollTop / containerHeight);
+        idx !== currentVideo && goToVideo(idx);
+      }, 150);
+    }, { passive: true });
+
+    // 短视频点赞
+    const svLiked = {};
+    function toggleSvLike(idx) {
+      svLiked[idx] = !svLiked[idx];
+      const btn = document.getElementById('sv-like-btn-' + idx);
+      const num = document.getElementById('sv-like-num-' + idx);
+      if (svLiked[idx]) {
+        btn.textContent = '❤️';
+        btn.style.background = 'var(--primary)';
+        if (num) {
+          const base = ['12.8', '8.3', '5.6', '18.5', '23.1'][idx];
+          const cur = parseFloat(base);
+          num.textContent = (cur + 0.1).toFixed(1) + '万';
+        }
+      } else {
+        btn.textContent = '🤍';
+        btn.style.background = 'rgba(255,255,255,0.12)';
+      }
+    }
+  </script>
+</body>
+</html>
